@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClutchCAD — Glove Tuning Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0D1117;
+  --surface:  #161B22;
+  --surface2: #1C2128;
+  --border:   #30363D;
+  --border2:  #21262D;
+  --text:     #E6EDF3;
+  --muted:    #7D8590;
+  --accent:   #58A6FF;
+  --green:    #3FB950;
+  --amber:    #D29922;
+  --red:      #F85149;
+  --mono: 'IBM Plex Mono', 'Fira Mono', ui-monospace, monospace;
+  --sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --r: 6px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* ── layout ── */
+.shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: 56px 1fr;
+  min-height: 100vh;
+}
+.topbar {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 16px 0;
+  overflow-y: auto;
+}
+.main {
+  overflow-y: auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── topbar ── */
+.wordmark {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--text);
+  white-space: nowrap;
+}
+.wordmark em { color: var(--accent); font-style: normal; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.pill {
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: background .2s, box-shadow .2s; }
+.dot.live { background: var(--green); box-shadow: 0 0 6px rgba(63,185,80,.6); animation: breathe 2.4s ease-in-out infinite; }
+@keyframes breathe { 0%,100%{opacity:1} 50%{opacity:.4} }
+@media (prefers-reduced-motion: reduce) { .dot.live { animation: none; } }
+
+select, button {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .04em;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  padding: 6px 14px;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: border-color .12s, background .12s, color .12s;
+  white-space: nowrap;
+}
+button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+button:disabled { opacity: .35; cursor: not-allowed; }
+button.primary { background: var(--accent); color: #0D1117; border-color: var(--accent); font-weight: 600; }
+button.primary:hover:not(:disabled) { background: #79BEFF; border-color: #79BEFF; color: #0D1117; }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── sidebar ── */
+.nav-section { margin-bottom: 4px; }
+.nav-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 4px 16px 6px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 16px;
+  font-size: 12.5px;
+  color: var(--muted);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: color .1s, border-color .1s, background .1s;
+  user-select: none;
+}
+.nav-item:hover { color: var(--text); background: rgba(255,255,255,.03); }
+.nav-item.active { color: var(--accent); border-left-color: var(--accent); background: rgba(88,166,255,.06); }
+.nav-icon { font-size: 13px; width: 16px; text-align: center; flex-shrink: 0; }
+.nav-tag {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(63,185,80,.12);
+  border: 1px solid rgba(63,185,80,.3);
+  color: var(--green);
+  white-space: nowrap;
+}
+.nav-tag.wip {
+  background: rgba(210,153,34,.1);
+  border-color: rgba(210,153,34,.3);
+  color: var(--amber);
+}
+
+/* ── panels ── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px;
+}
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border2);
+  gap: 10px;
+}
+.panel-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.badge {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.badge-live { background: rgba(63,185,80,.1); border: 1px solid rgba(63,185,80,.3); color: var(--green); }
+.badge-wip  { background: rgba(210,153,34,.1); border: 1px solid rgba(210,153,34,.3); color: var(--amber); }
+.page { display: none; flex-direction: column; gap: 20px; }
+.page.active { display: flex; }
+
+/* ── controls ── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 680px) { .grid2 { grid-template-columns: 1fr; } }
+.ctrl { display: flex; flex-direction: column; gap: 6px; }
+.ctrl-row { display: flex; justify-content: space-between; align-items: baseline; }
+.ctrl-label { font-size: 12px; font-weight: 500; color: var(--text); }
+.ctrl-val { font-family: var(--mono); font-size: 11.5px; color: var(--accent); }
+.ctrl-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+.divider { border: none; border-top: 1px solid var(--border2); margin: 4px 0; }
+
+/* range */
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 20px; background: transparent; cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track {
+  height: 3px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent) var(--fill,0%), var(--surface2) var(--fill,0%));
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px; margin-top: -5.5px;
+  background: var(--accent); border-radius: 50%; border: 2px solid var(--bg);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+input[type=range]::-moz-range-track { height: 3px; border-radius: 2px; background: var(--surface2); }
+input[type=range]::-moz-range-progress { height: 3px; border-radius: 2px; background: var(--accent); }
+input[type=range]::-moz-range-thumb {
+  width: 14px; height: 14px; background: var(--accent); border-radius: 50%;
+  border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--accent);
+}
+
+/* toggle */
+.toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
+.toggle-info { display: flex; flex-direction: column; gap: 2px; }
+.switch { position: relative; display: inline-block; width: 36px; height: 20px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.track { position: absolute; inset: 0; background: var(--surface2); border: 1px solid var(--border); border-radius: 999px; transition: border-color .15s; }
+.thumb { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+.switch input:checked ~ .track { border-color: var(--accent); }
+.switch input:checked ~ .track .thumb { transform: translateX(16px); background: var(--accent); }
+.switch input:focus-visible ~ .track { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* macro fields */
+.macro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 600px) { .macro-grid { grid-template-columns: 1fr; } }
+.macro-field { display: flex; flex-direction: column; gap: 5px; }
+.macro-field label { font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-family: var(--mono); }
+.macro-field input[type=text] {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r);
+  color: var(--text); font-family: var(--mono); font-size: 12px; padding: 7px 10px;
+  transition: border-color .12s;
+}
+.macro-field input[type=text]:focus { border-color: var(--accent); outline: none; }
+.macro-field input[type=text]::placeholder { color: #3D444D; }
+
+/* output row */
+.output-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 860px) { .output-row { grid-template-columns: 1fr; } }
+
+/* monitor */
+.monitor {
+  background: var(--bg); border: 1px solid var(--border2); border-radius: var(--r);
+  padding: 10px 12px; height: 180px; overflow-y: auto;
+  font-family: var(--mono); font-size: 11px; line-height: 1.7;
+}
+.monitor .ln { white-space: pre-wrap; word-break: break-all; }
+.monitor .tx { color: var(--accent); }
+.monitor .rx { color: var(--green); }
+.monitor .sys { color: var(--muted); font-style: italic; }
+.monitor time { color: #3D444D; margin-right: 7px; }
+.monitor-empty { color: var(--muted); font-style: italic; font-size: 11px; }
+
+/* payload */
+.payload {
+  background: var(--bg); border: 1px solid var(--border2); border-radius: var(--r);
+  padding: 12px; font-family: var(--mono); font-size: 11px; color: var(--accent);
+  white-space: pre-wrap; word-break: break-all; min-height: 44px; line-height: 1.6;
+}
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+/* telemetry */
+.telem-row {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  padding: 6px 0; border-bottom: 1px solid var(--border2);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.telem-row:last-child { border-bottom: none; }
+.telem-k { color: var(--muted); }
+.telem-v { color: var(--text); text-align: right; }
+.telem-empty { color: var(--muted); font-size: 11.5px; font-style: italic; font-family: var(--mono); }
+.telem-meta { font-family: var(--mono); font-size: 10px; color: #3D444D; margin-top: 8px; }
+
+/* banner */
+.banner {
+  background: rgba(248,81,73,.07); border: 1px solid rgba(248,81,73,.3);
+  color: #FFA198; padding: 12px 16px; border-radius: var(--r);
+  font-size: 12.5px; line-height: 1.6;
+}
+.banner code { font-family: var(--mono); background: rgba(255,255,255,.06); padding: 1px 5px; border-radius: 3px; }
+
+/* section heading */
+.section-hint { font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 16px; }
+
+@media (max-width: 640px) {
+  .shell { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .main { padding: 16px; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- topbar -->
+  <header class="topbar">
+    <div class="wordmark">CLUTCH<em>CAD</em> &nbsp;/&nbsp; Glove Tuning</div>
+    <div class="topbar-right">
+      <select id="baudSelect" title="Baud rate" style="padding:5px 10px;">
+        <option value="9600">9600</option>
+        <option value="19200">19200</option>
+        <option value="57600">57600</option>
+        <option value="115200" selected>115200</option>
+        <option value="230400">230400</option>
+        <option value="460800">460800</option>
+      </select>
+      <span class="pill">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">Disconnected</span>
+      </span>
+      <button class="primary" id="connectBtn">Connect</button>
+    </div>
+  </header>
+
+  <!-- sidebar -->
+  <nav class="sidebar">
+    <div class="nav-section">
+      <div class="nav-label">Config</div>
+      <div class="nav-item active" data-page="cursor">
+        <span class="nav-icon">⊹</span> Cursor
+        <span class="nav-tag">live</span>
+      </div>
+      <div class="nav-item" data-page="clutch">
+        <span class="nav-icon">◈</span> Clutch &amp; Zoom
+        <span class="nav-tag">live</span>
+      </div>
+      <div class="nav-item" data-page="macros">
+        <span class="nav-icon">⌘</span> Macros
+        <span class="nav-tag">live</span>
+      </div>
+      <div class="nav-item" data-page="ml">
+        <span class="nav-icon">◎</span> Gesture ML
+        <span class="nav-tag wip">wip</span>
+      </div>
+    </div>
+    <div class="nav-section" style="margin-top:12px;">
+      <div class="nav-label">Tools</div>
+      <div class="nav-item" data-page="monitor">
+        <span class="nav-icon">◉</span> Serial Monitor
+      </div>
+      <div class="nav-item" data-page="payload">
+        <span class="nav-icon">{ }</span> Payload
+      </div>
+    </div>
+  </nav>
+
+  <!-- main -->
+  <main class="main">
+
+    <div id="unsupportedBanner" class="banner" hidden>
+      Web Serial isn't available here. Open this file directly in <strong>Chrome</strong> or <strong>Edge</strong> on desktop — not inside an embedded preview. Every control still works; copy the JSON from the Payload tab into a serial monitor manually.
+    </div>
+
+    <!-- CURSOR -->
+    <div class="page active" id="page-cursor">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Cursor</span>
+          <span class="badge badge-live">Live in firmware</span>
+        </div>
+        <p class="section-hint">Controls how hand tilt maps to on-screen cursor movement.</p>
+        <div class="grid2">
+          <div class="ctrl">
+            <div class="ctrl-row">
+              <label class="ctrl-label" for="sensitivity">Sensitivity</label>
+              <span class="ctrl-val" id="sensitivityVal">0.20</span>
+            </div>
+            <input type="range" id="sensitivity" min="0.05" max="2.00" step="0.05" value="0.2">
+            <span class="ctrl-desc">How much a tilt moves the cursor.</span>
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-row">
+              <label class="ctrl-label" for="deadzoneDeg">Deadzone</label>
+              <span class="ctrl-val" id="deadzoneDegVal">3.0°</span>
+            </div>
+            <input type="range" id="deadzoneDeg" min="1" max="10" step="0.5" value="3">
+            <span class="ctrl-desc">Tilt angle ignored near neutral — reduces drift.</span>
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-row">
+              <label class="ctrl-label" for="smoothingAlpha">Smoothing</label>
+              <span class="ctrl-val" id="smoothingAlphaVal">0.20</span>
+            </div>
+            <input type="range" id="smoothingAlpha" min="0.05" max="0.5" step="0.05" value="0.2">
+            <span class="ctrl-desc">Lower = smoother but laggier. Higher = more responsive.</span>
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-row">
+              <label class="ctrl-label" for="maxCursorSpeed">Speed cap</label>
+              <span class="ctrl-val" id="maxCursorSpeedVal">20</span>
+            </div>
+            <input type="range" id="maxCursorSpeed" min="5" max="40" step="1" value="20">
+            <span class="ctrl-desc">Maximum cursor movement per tick.</span>
+          </div>
+        </div>
+        <hr class="divider" style="margin: 18px 0;">
+        <div class="grid2">
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="ctrl-label">Invert X</span>
+              <span class="ctrl-desc">Flip left/right.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="invertX">
+              <span class="track"><span class="thumb"></span></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="ctrl-label">Invert Y</span>
+              <span class="ctrl-desc">Flip up/down.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="invertY" checked>
+              <span class="track"><span class="thumb"></span></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLUTCH -->
+    <div class="page" id="page-clutch">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Clutch &amp; Zoom</span>
+          <span class="badge badge-live">Live in firmware</span>
+        </div>
+        <p class="section-hint">Tilt behaviour while the clutch button is held. Cursor tracking is fully off — tilt controls zoom and discrete view commands instead.</p>
+        <div class="grid2">
+          <div class="ctrl">
+            <div class="ctrl-row">
+              <label class="ctrl-label" for="zoomTiltDeadzoneDeg">Zoom deadzone</label>
+              <span class="ctrl-val" id="zoomTiltDeadzoneDegVal">20°</span>
+            </div>
+            <input type="range" id="zoomTiltDeadzoneDeg" min="5" max="40" step="1" value="20">
+            <span class="ctrl-desc">Tilt angle before zoom activates.</span>
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-row">
+              <label class="ctrl-label" for="zoomTickIntervalMs">Zoom speed</label>
+              <span class="ctrl-val" id="zoomTickIntervalMsVal">250 ms</span>
+            </div>
+            <input type="range" id="zoomTickIntervalMs" min="50" max="1000" step="10" value="250">
+            <span class="ctrl-desc">Time between zoom ticks. Higher = slower zoom.</span>
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-row">
+              <label class="ctrl-label" for="clutchUpDownThreshold">Up/down fire angle</label>
+              <span class="ctrl-val" id="clutchUpDownThresholdVal">15°</span>
+            </div>
+            <input type="range" id="clutchUpDownThreshold" min="5" max="30" step="1" value="15">
+            <span class="ctrl-desc">Tilt needed to trigger Zoom-fit or View-normal.</span>
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-row">
+              <label class="ctrl-label" for="clutchUpDownHoldMs">Hold time</label>
+              <span class="ctrl-val" id="clutchUpDownHoldMsVal">150 ms</span>
+            </div>
+            <input type="range" id="clutchUpDownHoldMs" min="50" max="500" step="10" value="150">
+            <span class="ctrl-desc">How long to hold the tilt before it fires.</span>
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-row">
+              <label class="ctrl-label" for="clutchRollRearmDeg">Re-arm angle</label>
+              <span class="ctrl-val" id="clutchRollRearmDegVal">5°</span>
+            </div>
+            <input type="range" id="clutchRollRearmDeg" min="1" max="15" step="1" value="5">
+            <span class="ctrl-desc">Must return within this angle before firing again. Keep below fire angle.</span>
+          </div>
+        </div>
+        <hr class="divider" style="margin: 18px 0;">
+        <div class="grid2">
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="ctrl-label">Invert clutch roll</span>
+              <span class="ctrl-desc">Swap Zoom-fit / View-normal directions.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="invertClutchRoll">
+              <span class="track"><span class="thumb"></span></span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info">
+              <span class="ctrl-label">Invert zoom</span>
+              <span class="ctrl-desc">Swap zoom in / zoom out direction.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="invertZoom">
+              <span class="track"><span class="thumb"></span></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MACROS -->
+    <div class="page" id="page-macros">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Clutch Macros</span>
+          <span class="badge badge-live">Live in firmware</span>
+        </div>
+        <p class="section-hint">Remap clutch-mode actions without reflashing. Separate keys with <code style="font-family:var(--mono);background:var(--surface2);padding:1px 5px;border-radius:3px;">+</code> — e.g. <code style="font-family:var(--mono);background:var(--surface2);padding:1px 5px;border-radius:3px;">ctrl+z</code>. Modifiers: ctrl, shift, alt, gui/cmd/win. Zoom direction (tilt left/right) is not remappable here.</p>
+        <div class="macro-grid">
+          <div class="macro-field">
+            <label for="macroUndo">Undo — left tap in clutch</label>
+            <input type="text" id="macroUndo" value="ctrl+z" placeholder="e.g. ctrl+z">
+          </div>
+          <div class="macro-field">
+            <label for="macroRedo">Redo — right tap in clutch</label>
+            <input type="text" id="macroRedo" value="ctrl+y" placeholder="e.g. ctrl+y">
+          </div>
+          <div class="macro-field">
+            <label for="macroSketch">Sketch — left hold in clutch</label>
+            <input type="text" id="macroSketch" value="shift+s" placeholder="e.g. shift+s">
+          </div>
+          <div class="macro-field">
+            <label for="macroExtrude">Extrude — right hold in clutch</label>
+            <input type="text" id="macroExtrude" value="shift+e" placeholder="e.g. shift+e">
+          </div>
+          <div class="macro-field">
+            <label for="macroZoomFit">Zoom to fit — tilt up</label>
+            <input type="text" id="macroZoomFit" value="f" placeholder="e.g. f">
+          </div>
+          <div class="macro-field">
+            <label for="macroViewNormal">View normal — tilt down</label>
+            <input type="text" id="macroViewNormal" value="v+n" placeholder="e.g. v+n">
+          </div>
+        </div>
+        <p style="margin-top:12px;font-size:11px;color:var(--muted);">On Mac, swap ctrl+y → cmd+shift+z for Redo. Hold threshold is 600ms. Changes apply on next Send.</p>
+      </div>
+    </div>
+
+    <!-- MONITOR -->
+    <div class="page" id="page-monitor">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Serial Monitor</span>
+        </div>
+        <div class="monitor" id="monitor">
+          <span class="monitor-empty">Nothing sent or received yet.</span>
+        </div>
+        <div class="btn-row">
+          <button id="clearLogBtn">Clear</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Live Telemetry</span>
+        </div>
+        <div id="telemetryBody"><span class="telem-empty">No telemetry yet — add JSON lines to firmware Serial output.</span></div>
+        <div class="telem-meta" id="telemetryMeta"></div>
+      </div>
+    </div>
+
+    <!-- ML / GESTURE -->
+    <div class="page" id="page-ml">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Gesture Recognition — ML</span>
+          <span class="badge badge-wip">Not in firmware</span>
+        </div>
+        <p class="section-hint">These controls are reserved for the Edge Impulse gesture classifier — not yet implemented in the current firmware build.</p>
+
+        <div style="border:1px dashed var(--border);border-radius:var(--r);padding:28px 24px;text-align:center;margin-bottom:20px;">
+          <div style="font-family:var(--mono);font-size:32px;color:var(--border);margin-bottom:12px;">◎</div>
+          <div style="font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber);margin-bottom:8px;">Work in progress</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.7;max-width:420px;margin:0 auto;">
+            The gesture classifier was abandoned in favour of the clutch-mode button remap design — hardware threshold classification hit a ceiling on 2 axes with 4 gesture types. This tab is a placeholder for when an Edge Impulse trained model gets integrated.
+          </div>
+        </div>
+
+        <div class="grid2" style="opacity:.45;pointer-events:none;">
+          <div class="ctrl">
+            <div class="ctrl-row">
+              <label class="ctrl-label">ML confidence threshold</label>
+              <span class="ctrl-val">92%</span>
+            </div>
+            <input type="range" min="50" max="99" step="1" value="92" disabled>
+            <span class="ctrl-desc">Minimum match certainty before a gesture fires.</span>
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-row">
+              <label class="ctrl-label">Cooldown</label>
+              <span class="ctrl-val">600 ms</span>
+            </div>
+            <input type="range" min="300" max="1500" step="50" value="600" disabled>
+            <span class="ctrl-desc">Minimum gap between two gesture triggers.</span>
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-row">
+              <label class="ctrl-label">Settle window</label>
+              <span class="ctrl-val">150 ms</span>
+            </div>
+            <input type="range" min="50" max="300" step="10" value="150" disabled>
+            <span class="ctrl-desc">Hand must be still this long before a new gesture starts.</span>
+          </div>
+          <div class="ctrl">
+            <div class="ctrl-row">
+              <label class="ctrl-label">Tolerance</label>
+              <span class="ctrl-val">5</span>
+            </div>
+            <input type="range" min="1" max="10" step="1" value="5" disabled>
+            <span class="ctrl-desc">Slack allowed when matching a gesture shape.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAYLOAD -->
+    <div class="page" id="page-payload">
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Payload Preview</span>
+        </div>
+        <p class="section-hint">Exactly what gets written to the ESP32's serial buffer. Only firmware-known fields are included.</p>
+        <div class="payload" id="payloadBox">{}</div>
+        <div class="btn-row">
+          <button class="primary" id="sendBtn" disabled>Send to Device</button>
+          <button id="copyBtn">Copy JSON</button>
+          <button id="resetBtn">Reset Defaults</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const $ = id => document.getElementById(id);
+const els = {
+  baud: $('baudSelect'), connectBtn: $('connectBtn'),
+  dot: $('statusDot'), statusText: $('statusText'),
+  banner: $('unsupportedBanner'),
+  sensitivity: $('sensitivity'), deadzoneDeg: $('deadzoneDeg'),
+  smoothingAlpha: $('smoothingAlpha'), maxCursorSpeed: $('maxCursorSpeed'),
+  invertX: $('invertX'), invertY: $('invertY'),
+  sensitivityVal: $('sensitivityVal'), deadzoneDegVal: $('deadzoneDegVal'),
+  smoothingAlphaVal: $('smoothingAlphaVal'), maxCursorSpeedVal: $('maxCursorSpeedVal'),
+  zoomTiltDeadzoneDeg: $('zoomTiltDeadzoneDeg'), zoomTickIntervalMs: $('zoomTickIntervalMs'),
+  clutchUpDownThreshold: $('clutchUpDownThreshold'), clutchUpDownHoldMs: $('clutchUpDownHoldMs'),
+  clutchRollRearmDeg: $('clutchRollRearmDeg'),
+  invertClutchRoll: $('invertClutchRoll'), invertZoom: $('invertZoom'),
+  zoomTiltDeadzoneDegVal: $('zoomTiltDeadzoneDegVal'), zoomTickIntervalMsVal: $('zoomTickIntervalMsVal'),
+  clutchUpDownThresholdVal: $('clutchUpDownThresholdVal'), clutchUpDownHoldMsVal: $('clutchUpDownHoldMsVal'),
+  clutchRollRearmDegVal: $('clutchRollRearmDegVal'),
+  macroUndo: $('macroUndo'), macroRedo: $('macroRedo'),
+  macroSketch: $('macroSketch'), macroExtrude: $('macroExtrude'),
+  macroZoomFit: $('macroZoomFit'), macroViewNormal: $('macroViewNormal'),
+  payloadBox: $('payloadBox'), sendBtn: $('sendBtn'), copyBtn: $('copyBtn'), resetBtn: $('resetBtn'),
+  monitor: $('monitor'), clearLogBtn: $('clearLogBtn'),
+  telemetryBody: $('telemetryBody'), telemetryMeta: $('telemetryMeta'),
+};
+
+const DEFAULTS = {
+  sensitivity:0.2, deadzoneDeg:3.0, smoothingAlpha:0.2, maxCursorSpeed:20,
+  invertX:1, invertY:-1,
+  zoomTiltDeadzoneDeg:20, zoomTickIntervalMs:250,
+  clutchUpDownThreshold:15, clutchUpDownHoldMs:150, clutchRollRearmDeg:5,
+  invertClutchRoll:1, invertZoom:1,
+  macroUndo:'ctrl+z', macroRedo:'ctrl+y', macroSketch:'shift+s', macroExtrude:'shift+e',
+  macroZoomFit:'f', macroViewNormal:'v+n',
+};
+const RANGE_IDS = [
+  'sensitivity','deadzoneDeg','smoothingAlpha','maxCursorSpeed',
+  'zoomTiltDeadzoneDeg','zoomTickIntervalMs','clutchUpDownThreshold','clutchUpDownHoldMs','clutchRollRearmDeg',
+];
+const TOGGLE_IDS = ['invertX','invertY','invertClutchRoll','invertZoom'];
+const MACRO_IDS  = ['macroUndo','macroRedo','macroSketch','macroExtrude','macroZoomFit','macroViewNormal'];
+
+// ── serial ──
+let port=null, reader=null, keepReading=false, readableStreamClosed=null, connected=false;
+
+function setConnected(s){
+  connected=s;
+  els.dot.classList.toggle('live',s);
+  els.statusText.textContent = s?'Connected':'Disconnected';
+  els.connectBtn.textContent = s?'Disconnect':'Connect';
+  els.connectBtn.classList.toggle('primary',!s);
+  els.sendBtn.disabled=!s;
+}
+
+function pad(n){ return n.toString().padStart(2,'0'); }
+function ts(){ const d=new Date(); return pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()); }
+
+function log(kind,text){
+  const empty=els.monitor.querySelector('.monitor-empty');
+  if(empty) empty.remove();
+  const row=document.createElement('div'); row.className='ln '+kind.toLowerCase();
+  const t=document.createElement('time'); t.textContent=ts();
+  row.appendChild(t);
+  row.appendChild(document.createTextNode((kind==='TX'?'→ ':kind==='RX'?'← ':'· ')+text));
+  els.monitor.appendChild(row);
+  while(els.monitor.children.length>300) els.monitor.removeChild(els.monitor.firstChild);
+  els.monitor.scrollTop=els.monitor.scrollHeight;
+}
+
+function renderTelemetry(obj){
+  els.telemetryBody.innerHTML='';
+  const keys=Object.keys(obj);
+  if(!keys.length){ els.telemetryBody.innerHTML='<span class="telem-empty">Empty object received.</span>'; return; }
+  keys.forEach(k=>{
+    const row=document.createElement('div'); row.className='telem-row';
+    const kEl=document.createElement('span'); kEl.className='telem-k';
+    kEl.textContent=k.replace(/([a-z])([A-Z])/g,'$1 $2').replace(/\b\w/g,c=>c.toUpperCase());
+    const vEl=document.createElement('span'); vEl.className='telem-v';
+    vEl.textContent=typeof obj[k]==='object'?JSON.stringify(obj[k]):String(obj[k]);
+    row.appendChild(kEl); row.appendChild(vEl);
+    els.telemetryBody.appendChild(row);
+  });
+  els.telemetryMeta.textContent='Updated '+ts();
+}
+
+function handleLine(line){
+  log('RX',line);
+  try{ const o=JSON.parse(line); if(o&&typeof o==='object') renderTelemetry(o); }catch(e){}
+}
+
+async function readLoop(){
+  const dec=new TextDecoderStream();
+  readableStreamClosed=port.readable.pipeTo(dec.writable);
+  reader=dec.readable.getReader();
+  let buf='';
+  try{
+    while(keepReading){
+      const {value,done}=await reader.read();
+      if(done) break;
+      if(value){ buf+=value; let i; while((i=buf.indexOf('\n'))>=0){ const l=buf.slice(0,i).trim(); buf=buf.slice(i+1); if(l) handleLine(l); } }
+    }
+  }catch(err){ log('SYS','Read error: '+err.message); }
+  finally{ try{reader.releaseLock();}catch(e){} }
+}
+
+async function connect(){
+  if(!('serial' in navigator)){ els.banner.hidden=false; return; }
+  try{
+    port=await navigator.serial.requestPort();
+    await port.open({baudRate:Number(els.baud.value), dataBits:8, stopBits:1, parity:'none', flowControl:'none', bufferSize:4096});
+    keepReading=true; setConnected(true);
+    log('SYS','Connected at '+els.baud.value+' baud'); readLoop();
+  }catch(err){
+    if(err&&err.name==='SecurityError') log('SYS','Web Serial blocked. Open this file directly in Chrome or Edge.');
+    else if(err&&err.name!=='NotFoundError') log('SYS','Failed: '+err.message);
+  }
+}
+
+async function disconnect(){
+  keepReading=false;
+  try{if(reader) await reader.cancel();}catch(e){}
+  try{if(readableStreamClosed) await readableStreamClosed.catch(()=>{});}catch(e){}
+  try{if(port) await port.close();}catch(e){}
+  setConnected(false); log('SYS','Disconnected');
+}
+
+  async function sendConfig(){
+    if(!port||!port.writable) return;
+    const cfg = currentConfig();
+    const cursor = {
+      sensitivity: cfg.sensitivity, deadzoneDeg: cfg.deadzoneDeg,
+      smoothingAlpha: cfg.smoothingAlpha, maxCursorSpeed: cfg.maxCursorSpeed,
+      invertX: cfg.invertX, invertY: cfg.invertY
+    };
+    const clutch = {
+      zoomTiltDeadzoneDeg: cfg.zoomTiltDeadzoneDeg, zoomTickIntervalMs: cfg.zoomTickIntervalMs,
+      clutchUpDownThreshold: cfg.clutchUpDownThreshold, clutchUpDownHoldMs: cfg.clutchUpDownHoldMs,
+      clutchRollRearmDeg: cfg.clutchRollRearmDeg, invertClutchRoll: cfg.invertClutchRoll,
+      invertZoom: cfg.invertZoom
+    };
+    const macros = {
+      macroUndo: cfg.macroUndo, macroRedo: cfg.macroRedo,
+      macroSketch: cfg.macroSketch, macroExtrude: cfg.macroExtrude,
+      macroZoomFit: cfg.macroZoomFit, macroViewNormal: cfg.macroViewNormal
+    };
+    for(const chunk of [cursor, clutch, macros]){
+      await sendObj(chunk);
+      await new Promise(r => setTimeout(r, 120));
+    }
+  }
+
+async function sendObj(obj){
+  if(!port||!port.writable) return;
+  const w=port.writable.getWriter();
+  try{ await w.write(new TextEncoder().encode(JSON.stringify(obj)+'\n')); log('TX',JSON.stringify(obj)); }
+  catch(err){ log('SYS','Write failed: '+err.message); }
+  finally{ w.releaseLock(); }
+}
+
+if('serial' in navigator){
+  navigator.serial.addEventListener('disconnect',e=>{ if(e.target===port){ setConnected(false); log('SYS','Device unplugged'); } });
+}
+
+els.connectBtn.addEventListener('click',()=>{ connected?disconnect():connect(); });
+
+// ── controls ──
+function setFill(el){
+  const pct=(Number(el.value)-Number(el.min))/(Number(el.max)-Number(el.min))*100;
+  el.style.setProperty('--fill',pct+'%');
+}
+function toggleVal(id){ return els[id].checked?-1:1; }
+function parseMacro(s){ return s.toLowerCase().split('+').map(x=>x.trim()).filter(Boolean); }
+
+function currentConfig(){
+  const cfg={};
+  RANGE_IDS.forEach(id=>{ cfg[id]=Number(els[id].value); });
+  TOGGLE_IDS.forEach(id=>{ cfg[id]=toggleVal(id); });
+  MACRO_IDS.forEach(id=>{ cfg[id]=parseMacro(els[id].value); });
+  return cfg;
+}
+
+function refreshPreview(){ els.payloadBox.textContent=JSON.stringify(currentConfig(),null,2); }
+
+function updateReadouts(){
+  els.sensitivityVal.textContent     = Number(els.sensitivity.value).toFixed(2);
+  els.deadzoneDegVal.textContent     = Number(els.deadzoneDeg.value).toFixed(1)+'°';
+  els.smoothingAlphaVal.textContent  = Number(els.smoothingAlpha.value).toFixed(2);
+  els.maxCursorSpeedVal.textContent  = els.maxCursorSpeed.value;
+  els.zoomTiltDeadzoneDegVal.textContent  = els.zoomTiltDeadzoneDeg.value+'°';
+  els.zoomTickIntervalMsVal.textContent   = els.zoomTickIntervalMs.value+' ms';
+  els.clutchUpDownThresholdVal.textContent= els.clutchUpDownThreshold.value+'°';
+  els.clutchUpDownHoldMsVal.textContent   = els.clutchUpDownHoldMs.value+' ms';
+  els.clutchRollRearmDegVal.textContent   = els.clutchRollRearmDeg.value+'°';
+  RANGE_IDS.forEach(id=>setFill(els[id]));
+}
+
+RANGE_IDS.forEach(id=>{ els[id].addEventListener('input',()=>{ updateReadouts(); refreshPreview(); }); });
+TOGGLE_IDS.forEach(id=>{ els[id].addEventListener('change',()=>{ refreshPreview(); }); });
+MACRO_IDS.forEach(id=>{ els[id].addEventListener('input',refreshPreview); });
+
+els.sendBtn.addEventListener('click',()=>sendConfig());
+els.copyBtn.addEventListener('click',()=>{
+  navigator.clipboard.writeText(els.payloadBox.textContent).then(()=>{
+    const o=els.copyBtn.textContent; els.copyBtn.textContent='Copied!';
+    setTimeout(()=>{ els.copyBtn.textContent=o; },1200);
+  }).catch(()=>{});
+});
+els.resetBtn.addEventListener('click',()=>{
+  RANGE_IDS.forEach(id=>{ els[id].value=DEFAULTS[id]; });
+  TOGGLE_IDS.forEach(id=>{ els[id].checked=(DEFAULTS[id]===-1); });
+  MACRO_IDS.forEach(id=>{ els[id].value=DEFAULTS[id]; });
+  updateReadouts(); refreshPreview();
+});
+els.clearLogBtn.addEventListener('click',()=>{
+  els.monitor.innerHTML='<span class="monitor-empty">Nothing sent or received yet.</span>';
+});
+
+// ── nav ──
+document.querySelectorAll('.nav-item[data-page]').forEach(item=>{
+  item.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    item.classList.add('active');
+    $('page-'+item.dataset.page).classList.add('active');
+  });
+});
+
+// ── init ──
+updateReadouts(); refreshPreview();
+
+window.addEventListener('load',async()=>{
+  if(!('serial' in navigator)){ els.banner.hidden=false; els.connectBtn.disabled=true; return; }
+  try{
+    const ports=await navigator.serial.getPorts();
+    if(ports.length===1){
+      port=ports[0]; await port.open({baudRate:Number(els.baud.value), dataBits:8, stopBits:1, parity:'none', flowControl:'none', bufferSize:4096});
+      keepReading=true; setConnected(true);
+      log('SYS','Reconnected to previously authorized device'); readLoop();
+    }
+  }catch(e){}
+});
+})();
+</script>
+</body>
+</html>
