@@ -106,6 +106,6 @@ This project has went through different iterations, versions, and downgrades, su
 
 ## Made by
 
-Controls system, firmware, features - Edward
+Controls system, firmware, features, repository - Edward
 
-Attaching components, features, building - Ryaan
+Attaching components, features, building, zine - Ryaan
