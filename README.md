@@ -77,7 +77,10 @@ Drawback 4: Items at hand
 
 Drawback 5: Short on first connection
 - With just the XIAO ESP C3, and the MPU6050, something was shorted on the first connection, meaning that it took us extra time to find out the problem. 
-A multimeter was saying the reading was fine, but it was probably not working. 
+A multimeter was saying the reading was fine, but it was probably not working.
+
+Drawback 6: No motor driver for vibration feedback
+- Lost motor driver, and makerspace does not have diodes. 
 
 ## Iterations
 
