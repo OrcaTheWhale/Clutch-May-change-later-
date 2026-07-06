@@ -84,14 +84,19 @@ A multimeter was saying the reading was fine, but it was probably not working.
 This project has went through different iterations, versions, and downgrades, such as:
 
 - Went from ML --> Hardcode gestures due to having the four gestures being "simple"
+  
 - Removed hardcode - MPU6050 data was too innaccurate, and didn't have enough time. Also, misunderstanding of the MPU6050 has caused this too.
+  
 - Due to removing ML, went from calling the second mode "ML Mode" to "Clutch Mode" - Not too important, but was a marker to realizing "The Great Downgrade"
+  
 - Changing from hardcode gestures to "simple" gestures, and mapping buttons depending on "mode".
+  
 - Changing CTRL Z, CTRL Y, etc gestures to LEFT CLICK, RIGHT CLICK, etc buttons, but changing their functions on "clutch" mode.
 
 ## Solutions, Process Work 
 
 - Went from instant component connection to breadboard
+  
 - Needed extra Xiao ESP C3 for test while components are matched, and testing firmware and wiring
 
 
