@@ -40,6 +40,10 @@ A hybrid high-precision 2D/3D Air-Mouse wearable smart glove with an expresssive
 
 ## Zine
 
+<img width="205" height="295" alt="image" src="https://github.com/user-attachments/assets/f1115d01-dcb5-46bc-9019-ca37ed70d413" />
+
+
+
 ### Section 2: The Creation Process
 
 All these were under 2 days.
